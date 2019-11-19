@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+/loan/Debug
+/loan/loan/.vs/loan/v15
+/loan/loan/Debug
+/loan/loan/Release
+/loan/loan/x64
+/loan/loan/融券
+/loan/loan/loan.vcxproj.user
+/loan/loan/loan.vcxproj.filters
+/loan/loan/loan.vcxproj
+/loan/loan/loan.sln
