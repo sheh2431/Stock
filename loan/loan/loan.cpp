@@ -26,7 +26,7 @@ vector<double> beta;
 int s_num;
 int max_s = 51; // 最多有51個bit (0050+放銀行)
 
-int N = 2;				//粒子數
+int N = 1;				//粒子數
 int T = 1;			//實驗次數
 int generation = 1;	//世代數
 double r_angle = 0.0004;//旋轉角度
@@ -138,7 +138,7 @@ string convert_str(double n) {
 //string target = "(srand114)NQTS_" + convert_str(generation) + '_' + convert_str(N) + '_' + convert_str(T) + '_' + convert_str(r_angle) + "_正水位";
 //string target = "ENQTS_" + convert_str(generation) + '_' + convert_str(N) + '_' + convert_str(T) + '_' + convert_str(r_upper) + '-' + convert_str(r_lower);
 //string target = "(srand114)政穎_NQTS_1000_10_1_0.0004";
-string target = "(對稱水位check_扣手續費及剩餘資金)(srand114)"+stock_price+"_GNQTS_" + convert_str(generation) + '_' + convert_str(N) + '_' + convert_str(T) + '_' + convert_str(r_upper) + '-' + convert_str(r_lower);
+string target = "(對稱水位check_扣手續費)(srand114)"+stock_price+"_GNQTS_" + convert_str(generation) + '_' + convert_str(N) + '_' + convert_str(T) + '_' + convert_str(r_upper) + '-' + convert_str(r_lower);
 
 //string target = "(正水位)0050_2010-2018";
 string dir;
@@ -150,7 +150,7 @@ int mode = 0; // mode: 0, 0050成份股; 1, 0050成份股+定存(9999)
 
 bool output_test = false;
 bool run_out = false;
-bool maximum = false;
+bool maximum = true;
 
 void make_file() {
 	dir = ".\\融券\\" + target;
@@ -199,20 +199,18 @@ int read_file(string in) {
 void force_measure(int n) {
 	for (int i = 0; i < s_num; i++) {
 		if (n == 0) {
-			if (i == 3 || i == 5 || i == 14 || i == 15 || i == 19 || i == 22 || i == 24 || i == 26 || i == 45 || i == 49) {
-				sol[n].push_back(1);
-				portfolio[n].push_back(i);
-			}
-			else sol[n].push_back(0);
-		}
-		else if (n == 1) {
-			if (i == 14 || i == 15 || i == 22 || i == 45 || i == 49) {
+			if (i == 7) {
 				sol[n].push_back(1);
 				portfolio[n].push_back(i);
 			}
 			else sol[n].push_back(0);
 		}
 	}
+	/*M2M - 2014_07 負水位
+		i == 3 || i == 5 || i == 14 || i == 15 || i == 19 || i == 22 || i == 24 || i == 26 || i == 45 || i == 49
+		M2M - 2014_07 正水位
+		i == 14 || i == 15 || i == 22 || i == 45 || i == 49
+	/*------------------------------*/
 }
 /* --------- 選單檔 ---------- */
 void single(int p) {
@@ -477,16 +475,25 @@ double funds_standardization(int n, int s, int d) {
 					/*Origin
 					tmp_fs += funds[n] - tmp_share * tmp_price * fee * 1000; */
 
-					/*Check-fee-remainder*/
+					/*Check-fee-remainder
 					tmp_fs += funds[n] - s_remainder[n][s];
+
+					/*Check-fee*/
+					tmp_fs += funds[n];
+					
 					
 				}
 				else {
 					/*Origin
 					tmp_fs += tmp_share * tmp_price * 1000 - tmp_share * tmp_price * 1000 * fee
 						- tmp_share * tmp_price * 1000 * stt + s_remainder[n][s];*/
-					/*Check-fee-remainder*/
+
+					/*Check-fee-remainder
 					tmp_fs += tmp_share * tmp_price * 1000;
+
+					/*Check-fee*/
+					tmp_fs += tmp_share * tmp_price * 1000 + s_remainder[n][s];
+					
 				}
 			}
 			/* -------------------- END ----------------------*/
@@ -501,21 +508,21 @@ double funds_standardization(int n, int s, int d) {
 						tmp_fs = funds[n] - handling;
 					}
 					else tmp_fs = funds[n];*/
-					/*Check-fee-remainder*/
+					/*Check-fee-remainder
 					tmp_fs = funds[n] - s_remainder[n][s];
-					/*
-					cout << "fund: " << funds[n] << endl;
-					cout << "share: " << tmp_share << "\t" << "price: " << tmp_price << "\t" << "remainder: " << s_remainder[n][s] << endl;
-					cout << tmp_fs << endl;
-					cout << tmp_share * tmp_price * 1000 << endl;
-					system("pause");
-					*/
+					/*Check-fee*/
+					tmp_fs = funds[n];
+					
+					
 				}
 				else {//第二天後若買回，賺的就是跟第一天股價的價差，水位就是第一天資金水位+賺的價差-手續費
 					/*Origin
 					tmp_fs = seperate_fs[n][s] + tmp_share * (first_day_price[s] - tmp_price) * 1000 - tmp_share * tmp_price * 1000 * fee;*/
-					/*Check-fee-remainder*/
+					/*Check-fee-remainder
 					tmp_fs = seperate_fs[n][s] + tmp_share * (first_day_price[s] - tmp_price) * 1000;
+					/*Check-fee*/
+					tmp_fs = seperate_fs[n][s] + tmp_share * (first_day_price[s] - tmp_price) * 1000;
+					
 
 				}
 			}
@@ -556,8 +563,11 @@ double funds_standardization(int n, int s, int d) {
 
 void daily_fs(int n, int day) {
 	int p_num = portfolio[n].size();
-	/*Check-fee-remainder*/
+	/*Check-fee-remainder
 	double portfolio_fs = 0/*funds_remainder[n]*/;
+	/*Check-fee*/
+	double portfolio_fs = funds_remainder[n];
+	
 
 	for (int i = 0; i < p_num; i++) {
 		double tmp_fs = funds_standardization(n, i, day);
@@ -1622,7 +1632,7 @@ void write_fixed_detail(int p, string file_name) {
 	fstream file;
 	//string out = train_output + file_name;
 	//string out = dir + "/" + sliding_window + '/' + convert_str(stock[p]) + '_' + convert_str(p) + '_' + file_name;
-	string out = dir + "/" + sliding_window + "/particle" + convert_str(p+2) + '_' + file_name;
+	string out = dir + "/" + sliding_window + "/particle" + convert_str(p) + '_' + file_name;
 	file.open(out, ios::out);
 	file << "代數" << "," << generation << "\n";
 	file << "粒子數" << "," << N << "\n";
@@ -1832,8 +1842,8 @@ int main() {
 		cout << sliding_window << endl;
 		sliding();
 		invest_fund = init_fund;
-		for (int yy = 5; yy < 6; yy++) {
-			for (int pp = 6; pp < 7; pp++) {
+		for (int yy = 1; yy < 2; yy++) {
+			for (int pp = 8; pp < 9; pp++) {
 				if (yy == break_a && pp == break_b) break;
 				if (sliding_window == "H2H") {
 					if (yy == 0 && pp == 0) { pp = 1; }
