@@ -138,7 +138,7 @@ string convert_str(double n) {
 //string target = "(srand114)NQTS_" + convert_str(generation) + '_' + convert_str(N) + '_' + convert_str(T) + '_' + convert_str(r_angle) + "_正水位";
 //string target = "ENQTS_" + convert_str(generation) + '_' + convert_str(N) + '_' + convert_str(T) + '_' + convert_str(r_upper) + '-' + convert_str(r_lower);
 //string target = "(srand114)政穎_NQTS_1000_10_1_0.0004";
-string target = "(對稱水位check_扣手續費)(srand114)"+stock_price+"_GNQTS_" + convert_str(generation) + '_' + convert_str(N) + '_' + convert_str(T) + '_' + convert_str(r_upper) + '-' + convert_str(r_lower);
+string target = "(對稱水位check_扣剩餘資金)(srand114)"+stock_price+"_GNQTS_" + convert_str(generation) + '_' + convert_str(N) + '_' + convert_str(T) + '_' + convert_str(r_upper) + '-' + convert_str(r_lower);
 
 //string target = "(正水位)0050_2010-2018";
 string dir;
@@ -150,7 +150,7 @@ int mode = 0; // mode: 0, 0050成份股; 1, 0050成份股+定存(9999)
 
 bool output_test = false;
 bool run_out = false;
-bool maximum = true;
+bool maximum = false;
 
 void make_file() {
 	dir = ".\\融券\\" + target;
@@ -297,10 +297,11 @@ void adaptive_angle(int g) {
 
 int cal_share(double funds, double dprice) {
 	int share;
-	/*Origin
-	share = floor(funds / (dprice * 1000 + dprice * 1000 * fee));*/
-	/*Check-fee-remainder*/
+	/*Origin*/
+	share = floor(funds / (dprice * 1000 + dprice * 1000 * fee));
+	/*Check-fee-remainder
 	share = floor(funds / (dprice * 1000));
+	*/
 	return share;
 }
 /* ---------- 買零股 ---------- */
@@ -312,12 +313,13 @@ int cal_odds(double funds, double dprice) {
 /* ---------------------------- */
 double cal_remainder(double funds, double dprice, int share) {
 	double tmp_remainder;
-	/*Origin
+	/*Check-fee-remainder
+	if (odd_lots == false)
+	tmp_remainder = funds - share * dprice * 1000;
+	*/
+	/*Origin*/
 	if (odd_lots == false)
 		tmp_remainder = funds - share * dprice * 1000 - share * dprice * 1000 * fee;
-	/*Check-fee-remainder*/
-	if (odd_lots == false)
-		tmp_remainder = funds - share * dprice * 1000;
 	else if (odd_lots == true)
 		tmp_remainder = funds - share * dprice - share * dprice * fee;
 	return tmp_remainder;
@@ -478,8 +480,12 @@ double funds_standardization(int n, int s, int d) {
 					/*Check-fee-remainder
 					tmp_fs += funds[n] - s_remainder[n][s];
 
-					/*Check-fee*/
+					/*Check-fee
 					tmp_fs += funds[n];
+
+					/*Check-remainder*/
+					tmp_fs += funds[n] - tmp_share * tmp_price * fee * 1000 - s_remainder[n][s];
+
 					
 					
 				}
@@ -491,9 +497,12 @@ double funds_standardization(int n, int s, int d) {
 					/*Check-fee-remainder
 					tmp_fs += tmp_share * tmp_price * 1000;
 
-					/*Check-fee*/
+					/*Check-fee
 					tmp_fs += tmp_share * tmp_price * 1000 + s_remainder[n][s];
-					
+
+					/*Check-remainder*/
+					tmp_fs += tmp_share * tmp_price * 1000 - tmp_share * tmp_price * 1000 * fee
+						- tmp_share * tmp_price * 1000 * stt;
 				}
 			}
 			/* -------------------- END ----------------------*/
@@ -508,10 +517,19 @@ double funds_standardization(int n, int s, int d) {
 						tmp_fs = funds[n] - handling;
 					}
 					else tmp_fs = funds[n];*/
+
 					/*Check-fee-remainder
 					tmp_fs = funds[n] - s_remainder[n][s];
-					/*Check-fee*/
+
+					/*Check-fee
 					tmp_fs = funds[n];
+
+					/*Check-remainder*/
+					double handling = tmp_share * tmp_price * (fee + stt) * 1000;
+					if (funds[n] >= handling) {
+						tmp_fs = funds[n] - handling - s_remainder[n][s];
+					}
+					else tmp_fs = funds[n] - s_remainder[n][s];
 					
 					
 				}
@@ -520,8 +538,11 @@ double funds_standardization(int n, int s, int d) {
 					tmp_fs = seperate_fs[n][s] + tmp_share * (first_day_price[s] - tmp_price) * 1000 - tmp_share * tmp_price * 1000 * fee;*/
 					/*Check-fee-remainder
 					tmp_fs = seperate_fs[n][s] + tmp_share * (first_day_price[s] - tmp_price) * 1000;
-					/*Check-fee*/
+					/*Check-fee
 					tmp_fs = seperate_fs[n][s] + tmp_share * (first_day_price[s] - tmp_price) * 1000;
+					/*Check-remainder*/
+					tmp_fs = seperate_fs[n][s] + tmp_share * (first_day_price[s] - tmp_price) * 1000 - tmp_share * tmp_price * 1000 * fee; 
+
 					
 
 				}
@@ -565,9 +586,10 @@ void daily_fs(int n, int day) {
 	int p_num = portfolio[n].size();
 	/*Check-fee-remainder
 	double portfolio_fs = 0/*funds_remainder[n]*/;
-	/*Check-fee*/
+	/*Check-fee
 	double portfolio_fs = funds_remainder[n];
-	
+	/*Check-remainder*/
+	double portfolio_fs = 0;
 
 	for (int i = 0; i < p_num; i++) {
 		double tmp_fs = funds_standardization(n, i, day);
@@ -1632,7 +1654,7 @@ void write_fixed_detail(int p, string file_name) {
 	fstream file;
 	//string out = train_output + file_name;
 	//string out = dir + "/" + sliding_window + '/' + convert_str(stock[p]) + '_' + convert_str(p) + '_' + file_name;
-	string out = dir + "/" + sliding_window + "/particle" + convert_str(p) + '_' + file_name;
+	string out = dir + "/" + sliding_window + "/particle" + convert_str(p+1) + '_' + file_name;
 	file.open(out, ios::out);
 	file << "代數" << "," << generation << "\n";
 	file << "粒子數" << "," << N << "\n";
