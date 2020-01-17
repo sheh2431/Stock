@@ -156,8 +156,8 @@ int mode = 1; // mode: 0, 0050成份股; 1, 0050成份股+定存(9999)
 
 bool output_test = false;
 bool run_out = false;
-bool maximum = true;
-bool fee_and_tax = false; //是否考慮手續費及稅 (true: 有；false: 否)
+bool maximum = false;
+bool fee_and_tax =true; //是否考慮手續費及稅 (true: 有；false: 否)
 bool odd_lots = false;
 
 string method;
@@ -2045,7 +2045,8 @@ int main() {
 
 				day = read_file(input_file);
 				find_times = 0;
-				//stock.push_back(9999);
+				if (mode == 1) stock.push_back(9999);
+				avg_Gbest_gen = 0;
 		/* ------------------------------------------ */
 				for (int t = 0; t < T; t++) {
 					/*
